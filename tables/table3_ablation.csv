@@ -1,0 +1,4 @@
+"Configuration","RMSE (mm)","Max. error (mm)"
+"FOSMC + fault-aware null space + reconfiguration","1.317 +/- 0.014","14.809"
+"Without reconfiguration","10.8 +/- 0.0","26.1"
+"Weak null-space objective","diverged (10/10 runs)","-"

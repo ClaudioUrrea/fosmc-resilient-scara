@@ -1,0 +1,4 @@
+S2 FOSMC  max|dq| = [3.33e-16 9.44e-16 6.66e-16]  max|dx| = 5.55e-13 mm  RMSE(MATLAB) = 0.0292 mm  lock isolated at -1.000 s
+S3 FOSMC  max|dq| = [3.33e-16 5.55e-16 6.66e-16]  max|dx| = 5.66e-13 mm  RMSE(MATLAB) = 1.4000 mm  lock isolated at 4.028 s
+S2 ISMC   max|dq| = [4.44e-16 7.77e-16 8.88e-16]  max|dx| = 5.58e-13 mm  RMSE(MATLAB) = 0.0920 mm  lock isolated at -1.000 s
+S3 ISMC   max|dq| = [3.33e-16 6.11e-16 4.44e-16]  max|dx| = 5.12e-13 mm  RMSE(MATLAB) = 1.5911 mm  lock isolated at 4.029 s

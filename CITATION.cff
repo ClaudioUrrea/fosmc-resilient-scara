@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software or data, please cite it as below."
+title: "Resilient Fractional-Order Sliding-Mode Control of Redundant Robots: Code, Raw Results and RoboDK Digital Twin"
+version: 1.0.0
+date-released: 2026-09-24
+license: MIT
+doi: 10.6084/m9.figshare.33987061
+repository-code: "https://github.com/ClaudioUrrea/fosmc-resilient-scara"
+authors:
+  - family-names: Urrea
+    given-names: Claudio
+    orcid: "https://orcid.org/0000-0001-7197-8928"
+    affiliation: "Electrical Engineering Department, Faculty of Engineering, Universidad de Santiago de Chile"
+keywords:
+  - fractional-order control
+  - sliding-mode control
+  - fault-tolerant control
+  - redundant manipulator
+  - SCARA robot
+  - digital twin
+  - RoboDK
