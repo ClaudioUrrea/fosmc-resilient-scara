@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software or data, please cite it as below."
-title: "Resilient Fractional-Order Sliding-Mode Control of Redundant Robots: Code, Raw Results and RoboDK Digital Twin"
-version: 1.0.0
-date-released: 2026-09-24
+title: "Fractional-Order Sliding-Mode Control of a Rail-Mounted Redundant SCARA: Code, Raw Results and RoboDK Kinematic Twin"
+version: 1.1.1
+date-released: 2026-10-21
 license: MIT
 doi: 10.6084/m9.figshare.33987061
 repository-code: "https://github.com/ClaudioUrrea/fosmc-resilient-scara"
@@ -19,3 +19,11 @@ keywords:
   - SCARA robot
   - digital twin
   - RoboDK
+preferred-citation:
+  type: article
+  title: "Fractional-Order Sliding-Mode Control of a Rail-Mounted Redundant SCARA Under Actuator Degradation and Elbow Locking: Truncated-Memory Analysis and a Reproducible Simulation Benchmark"
+  journal: "Fractal and Fractional"
+  year: 2026
+  authors:
+    - family-names: Urrea
+      given-names: Claudio

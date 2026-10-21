@@ -11,6 +11,9 @@ function out = fosmc_sim(opts)
 %     .Tf [10]  .dt [1e-3]  .Lmem [1.0]  .reconfigure [true]  .antiwindup [false]
 %     .noise [false]  .seed [0]  (MATLAB random stream differs from NumPy)
 %     .ptrue [struct]  true plant parameters (default: nominal, 1.5-kg payload)
+%     .fdi ['generic']  'generic': every free joint monitored in every scenario
+%                       'legacy' : v1.0.0 behaviour (elbow only, S3 only)
+%     .reset [true]     reset integral state and GL history at reconfiguration
 %
 %   Runs unchanged in MATLAB (R2016b or later) and GNU Octave (>= 6).
 %   Author: C. Urrea.
@@ -18,7 +21,7 @@ function out = fosmc_sim(opts)
 if nargin < 1, opts = struct(); end
 o = defaults(opts, struct('lam', 0.7, 'L2', 1600, 'L1', 20, 'scenario', 'S3', 'Tf', 10, ...
     'dt', 1e-3, 'Lmem', 1.0, 'reconfigure', true, 'antiwindup', false, 'noise', false, ...
-    'seed', 0, 'ptrue', []));
+    'seed', 0, 'ptrue', [], 'fdi', 'generic', 'reset', true));
 pn = nominal_params();
 if isempty(o.ptrue)
     pt = pn; pt.fv = 1.2 * pn.fv; pt.fc = 1.2 * pn.fc; pt = with_payload(pt, 1.5);
@@ -46,6 +49,7 @@ cl.W = [1; 1; 1]; cl.Kp = 400; cl.Kv = 40; cl.kn = 100; cl.q2s = pi / 2;
 pl.q = q0; pl.qd = zeros(3, 1); pl.free = true(3, 1); pl.eff = ones(3, 1); pl.bias = zeros(3, 1);
 KO = 50; r = zeros(3, 1); integ = zeros(3, 1); p0 = []; 
 r_th = [60; 8; 4]; v_th = 0.02; persist = round(0.02 / dt); cnt = zeros(3, 1); detected = -1;
+declared = false(3, 1); alarms = zeros(0, 2);
 sig_q = [2e-6; 2e-5; 2e-5]; sig_v = [1e-3; 2e-3; 2e-3];
 if o.noise, rng(o.seed); end
 
@@ -71,14 +75,31 @@ for k = 1:n
     integ = integ + (tau + C' * vm - friction(vm, pn) + r) * dt;
     r = KO * (pm - integ - p0);
     % ---- FDI (lock signature) and reconfiguration
-    if detected < 0
-        cond = (abs(r) > r_th) & (abs(vm) < v_th) & (abs(cl.qd) > 0.05);
+    if strcmp(o.fdi, 'legacy')
+        if detected < 0
+            cond = (abs(r) > r_th) & (abs(vm) < v_th) & (abs(cl.qd) > 0.05);
+            cnt(cond) = cnt(cond) + 1; cnt(~cond) = 0;
+            if cnt(3) >= persist && strcmp(o.scenario, 'S3')
+                detected = t; alarms(end+1, :) = [t, 3];
+                if o.reconfigure
+                    cl.active(3) = false; cl.q = qm; cl.qd = zeros(3, 1);
+                    enabled(3) = false;
+                    if o.reset, Ie(:) = 0; buf(:) = 0; end
+                end
+            end
+        end
+    else
+        cond = (abs(r) > r_th) & (abs(vm) < v_th) & (abs(cl.qd) > 0.05) & ~declared;
         cnt(cond) = cnt(cond) + 1; cnt(~cond) = 0;
-        if cnt(3) >= persist && strcmp(o.scenario, 'S3')
-            detected = t;
-            if o.reconfigure
-                cl.active(3) = false; cl.q = qm; cl.qd = zeros(3, 1);
-                enabled(3) = false; Ie(:) = 0; buf(:) = 0;
+        for j = 1:3
+            if cnt(j) >= persist && ~declared(j)
+                declared(j) = true; alarms(end+1, :) = [t, j];
+                if detected < 0, detected = t; end
+                if o.reconfigure
+                    cl.active(j) = false; cl.q = qm; cl.qd = zeros(3, 1);
+                    enabled(j) = false;
+                    if o.reset, Ie(:) = 0; buf(:) = 0; end
+                end
             end
         end
     end
@@ -109,7 +130,7 @@ for k = 1:n
     % ---- plant (RK4, two sub-steps)
     pl = plant_step(pl, t, tau, dt, pt);
 end
-out.detected = detected;
+out.detected = detected; out.alarms = alarms;
 out.params = pn;   % nominal model actually used (check l1 = 0.400, l2 = 0.250)
 ex = sqrt(sum((out.x - out.xd).^2, 2)) * 1e3; m = out.t >= 1;
 out.rmse = sqrt(mean(ex(m).^2)); out.emax = max(ex(m));

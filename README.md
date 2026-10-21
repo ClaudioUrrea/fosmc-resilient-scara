@@ -1,12 +1,14 @@
 # fosmc-resilient-scara
 
-**Release v1.0.0** · MIT License · Archived at Figshare: [10.6084/m9.figshare.33987061](https://doi.org/10.6084/m9.figshare.33987061)
+**Release v1.1.1** · MIT License · Archived at Figshare: [10.6084/m9.figshare.33987061](https://doi.org/10.6084/m9.figshare.33987061)
 
-Code, raw results and RoboDK digital twin for the article
+Code, raw results and RoboDK kinematic twin for the article
 
-> C. Urrea, *Resilient Fractional-Order Sliding-Mode Control of Redundant Robots Under Actuator Faults and Joint Locking: Theory, Short-Memory Implementation, and an Open Digital-Twin Benchmark*, submitted to *Fractal and Fractional* (MDPI), 2026.
+> C. Urrea, *Fractional-Order Sliding-Mode Control of a Rail-Mounted Redundant SCARA Under Actuator Degradation and Elbow Locking: Truncated-Memory Analysis and a Reproducible Simulation Benchmark*, *Fractal and Fractional* (MDPI), 2026 (under revision).
 
-The benchmark is a kinematically redundant rail-mounted SCARA robot (ABB IRB 910SC-3/0.65 arm lengths, 400 mm + 250 mm, on a 2-m linear rail) that follows a dispensing contour while an actuator loses 50 % of its effectiveness and the elbow joint locks. Four controllers are compared under a common control-activity budget: computed-torque PID (CT-PID), two integer integral sliding-mode controllers (ISMC-A with the same gains as the proposed controller, ISMC-B best-tuned) and the proposed fractional-order sliding-mode controller (FOSMC, λ = 0.7) with a short-memory Grünwald–Letnikov implementation, fault-aware redundancy resolution and momentum-observer fault detection and isolation.
+The benchmark is a kinematically redundant rail-mounted SCARA robot (P-R-R, ABB IRB 910SC-3/0.65 arm lengths, 400 mm + 250 mm, on a 2-m linear rail) that follows a dispensing contour while an actuator loses 50 % of its effectiveness and the elbow joint locks (scenarios S1 no fault, S2 loss of effectiveness, S3 = S2 + elbow lock). Sliding-mode controllers with integer (ISMC) and fractional (FOSMC, short-memory Grünwald-Letnikov, exact truncated kernel) integral action are compared with a computed-torque PID under a common control-activity budget, with a fair-tuning protocol (tuning seeds 0-3, evaluation seeds 100-199), fault-aware redundancy resolution and momentum-observer fault detection and isolation.
+
+**What is new in v1.1.x (revision R1).** Seven controllers and generic fault detection (`sim2.py`); anti-windup, actuator lag, quantisation, uncertainty, LOE ramp and enlarged robust-gain campaigns; analysis of the post-lock failure mechanism (payload, saturation demand, margin violation) and of a gain schedule at reconfiguration; numerical checks of the theory (`theory_num.py`); MATLAB R2026b and Octave cross-check; software-emulated hardware test protocol (`HARDWARE_TEST_PROTOCOL.md`, not yet executed); graphical abstract. See `CHANGELOG.md`.
 
 ## Contents
 
@@ -28,10 +30,26 @@ The benchmark is a kinematically redundant rail-mounted SCARA robot (ABB IRB 910
 | `figures/` | Figures as published (PDF/PNG), `fig_architecture.tex` (Figure 2, TikZ) and RoboDK snapshots |
 | `EXPERIMENTAL_PROTOCOL.md` | Protocol for the experimental validation on a physical SCARA |
 
+### v1.1.x (revision R1): added files
+
+| Path | Content |
+|---|---|
+| `sim2.py` | Extended simulator: generic FDI, conditional/back-calculation anti-windup, LOE ramp, actuator lag, quantisation, uncertainty scaling, configurable robust gain, gain schedule at reconfiguration (`gains_post`), true-uncertainty logging |
+| `ff_campaigns.py`, `failfn.py` | Campaign runner (resumable, one JSON summary per run) and the common failure definition |
+| `camp_Z.py`, `camp_Z3b.py`, `camp_Q.py`, `camp_Q2.py`, `camp_S.py`, `camp_S2.py`, `camp_R.py` | Revision campaigns: anti-windup, delay, enlarged robust gain, gain schedule |
+| `an_all.py`, `an_Z.py`, `an_Z2.py`, `an_Q.py`, `stats.py`, `fail.py` | Tables and statistics (Wilcoxon, Fisher, failure-inclusive ranking) |
+| `diag_payload.py`, `diag_demand.py`, `diag_noreset.py`, `diag_runs.py`, `fig_failmech.py` | Post-lock failure mechanism (Section 3.6, Figure 11) → `diagnostics/`, `diag/` |
+| `theory_num.py`, `gl_bench.c` | Numerical checks of Lemma 1, Proposition 3 and Corollary 2; cost per step of the GL operator |
+| `figs_r1.py`, `fig_tuning.py`, `fig_kernel.py` | Figures of the revised paper |
+| `results2/` | Raw run summaries (`*.jsonl`) and gain selection (`selection2.json`) |
+| `graphical_abstract/` | `GA_Fractal_and_Fractional.py` regenerates the graphical abstract (PNG/TIFF) |
+| `HARDWARE_TEST_PROTOCOL.md` | Protocol for the experimental validation (not yet executed) |
+
+
 ## Runs deposited
 
-- **Evaluation:** 240 Monte Carlo runs = 3 scenarios (S1 no fault, S2 LOE, S3 LOE + elbow lock) × 4 controllers × seeds 100–119 (`results/mc.json`).
-- **Supplementary (408 runs):** tuning grid 96 (24 configurations × seeds 0–3), anti-windup 60, ablation 20, memory length 36, actuation delay 192 (96 configurations × seeds 0–1), deterministic cross-implementation cases 4.
+- **v1.1.x (`results2/`):** 5060 run summaries (tuning grids, main Monte Carlo with seven controllers, memory length, reset policy, anti-windup, severity × saturation, LOE ramp, FDI thresholds, input delay, lag/quantisation/uncertainty, enlarged robust gain, gain schedule). Evaluation seeds 100-199; tuning seeds 0-3.
+- **v1.0.0 (`results/`):** 648 runs of the original submission (240 Monte Carlo + 408 supplementary), kept unchanged for traceability.
 
 Every run is defined by its seed and by the parameters in `sim.py`; the raw metrics of all runs are stored, so the statistics can be recomputed and the gain selection repeated under any other activity budget without re-running the simulations.
 
@@ -44,6 +62,12 @@ python derive.py              # symbolic model check (seconds)
 python tune_final.py          # gain selection (~6 min)
 python run_all.py             # Monte Carlo, ablations, memory and delay campaigns (~30 min)
 python run_aw.py              # anti-windup robustness check (~4 min)
+# v1.1.x campaigns (resumable; each writes results2/*.jsonl)
+python ff_campaigns.py        # stages 1a-c and campaigns A-K, R
+python camp_Z.py && python camp_Z3b.py && python camp_Q.py && python camp_Q2.py && python camp_S.py && python camp_S2.py
+python an_all.py && python an_Z.py && python an_Z2.py && python an_Q.py   # tables
+python diag_payload.py && python diag_demand.py && python diag_noreset.py && python diag_runs.py && python fig_failmech.py
+python figs_r1.py             # figures of the revised paper
 python verify_py.py           # reference trajectories for the MATLAB cross-check
 python figs_theory.py         # Figures 1, 3, 4
 python figs_results.py        # Figures 6-11
@@ -79,7 +103,7 @@ python robodk_scene.py --csv results\traj_S3_FOSMC.csv --snap figures --zoom 2.0
 
 If you use this code or data, please cite the article and the archived release (see `CITATION.cff`):
 
-> Urrea, C. Resilient Fractional-Order Sliding-Mode Control of Redundant Robots: Code, Raw Results and RoboDK Digital Twin (Release v1.0.0) [Dataset]; Figshare, 2026. https://doi.org/10.6084/m9.figshare.33987061
+> Urrea, C. Fractional-Order Sliding-Mode Control of a Rail-Mounted Redundant SCARA: Code, Raw Results and RoboDK Kinematic Twin (Release v1.1.1) [Dataset]; Figshare, 2026. https://doi.org/10.6084/m9.figshare.33987061
 
 ## License
 
