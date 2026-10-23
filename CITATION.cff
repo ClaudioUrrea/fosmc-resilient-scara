@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software or data, please cite it as below."
 title: "Fractional-Order Sliding-Mode Control of a Rail-Mounted Redundant SCARA: Code, Raw Results and RoboDK Kinematic Twin"
-version: 1.1.1
-date-released: 2026-10-21
+version: 1.2.0
+date-released: 2026-10-23
 license: MIT
 doi: 10.6084/m9.figshare.33987061
 repository-code: "https://github.com/ClaudioUrrea/fosmc-resilient-scara"

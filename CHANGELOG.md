@@ -1,5 +1,14 @@
 # Changelog
 
+# v1.2.0 (revision R2, October 2026; adds 2552 runs to v1.1.1)
+- camp_R2.py: campaign M (1600 S3 runs: ISMC-J and FOSMC-J, nominal and enlarged P, with and without the gain schedule (20, 800), seeds 100-299; logs the reduced-chain uncertainty after isolation and its margin) and campaign P (400 S3 runs with the payload included in the controller model, relative error uniform in ±20 %, seeds 100-199).
+- camp_R2T.py: tuning with a robustness constraint. Admissible configurations have no failure on tuning seeds 0-3 in S2 and S3 under a 2-ms lag and a 2-ms input delay; selected: ISMC-K (30, 1600) and FOSMC-K (lambda=0.7; 20, 800); evaluation on seeds 100-119 (552 runs in camp_R2T1/T2.jsonl, selection in sel_R2T.json).
+- an_R2.py, an_T.py: analysis (Table 7, schedule on independent seeds, payload test, Table 9 with Wilcoxon tests; Holm-Bonferroni adjustment p < 2e-4 for the seven rows).
+- sim2.py: new optional arguments payload_err and log_red (default None/False: results identical to v1.1.1). The MATLAB code is unchanged.
+- fig_failmech.py: Figure 11a now pools seeds 100-299 (ISMC-J with the nominal P failed in 56 of 59 runs with payload >= 2.25 kg and in 2 of 117 runs below 1.87 kg).
+- graphical_abstract/: regenerated for revision R2.
+- Main findings: gain schedule on seeds 200-299: ISMC-J 0/100, FOSMC-J 1/100 failures (33 and 30 without it); payload known: 0/400 failures; with the robustness-constrained tuning, FOSMC-K is 4-15 % more accurate than ISMC-K (0/280 failures, p <= 2.7e-5).
+
 # v1.1.1 (revision R1, October 2026; adds 1610 runs to v1.1.0, no change to the simulator)
 - camp_Z.py: Z1, anti-windup (none / conditional / back-calculation) for ISMC-J and FOSMC-J in S3 on 100 evaluation seeds (100-199); Z2, completion of the stress-test table (ISMC-M and FOSMC-J in the LOE-ramp and realism K1-K3 rows, FOSMC-J at b1=0.5 with saturation x0.8); Z3, input delay on seeds 110-119 (all five controllers) so that the delay study uses 20 seeds. camp_Z3b.py: FOSMC-J at 0 and 11 ms on seeds 100-109.
 - results2/camp_Z1.jsonl, camp_Z2.jsonl, camp_Z3.jsonl, camp_Z3b.jsonl: raw run summaries (resumable, same format as v1.1.0).

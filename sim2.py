@@ -187,6 +187,7 @@ class SlidingController:
         self.sat = np.abs(tau_u) >= self.p['tau_max']
         tau = np.clip(tau_u, -self.p['tau_max'], self.p['tau_max'])
         self.excess = tau - tau_u
+        self.tau_u = tau_u
         tau[~self.enabled] = 0.0
         return tau, s
 
@@ -293,7 +294,7 @@ def run(ctrl_kind='FOSMC', lam=0.6, scenario='S1', seed=0, Tf=10.0, dt=1e-3,
         W=(1.0, 1.0, 1.0), omega=20.0, delay=0.0, antiwindup=False, noise=True, p_true=None,
         fdi='generic', rth_scale=1.0, reset_on_reconf=True, b1=0.5, loe_ramp=0.0, tau_scale=1.0,
         act_tc=0.0, enc_res=0.0, unc_scale=1.0, log_delta=False, kb=10.0, t_lock=4.0, rho=(40., 6., 3.),
-        gains_post=None):
+        gains_post=None, payload_err=None, log_red=False):
     """fdi='legacy' reproduces the submitted version (only joint 3 monitored, only in S3).
     fdi='generic' monitors every free joint in every scenario; each declaration disables the joint.
     gains_post=(L1, L2): optional gain schedule applied at reconfiguration (default None: gains unchanged)."""
@@ -304,10 +305,15 @@ def run(ctrl_kind='FOSMC', lam=0.6, scenario='S1', seed=0, Tf=10.0, dt=1e-3,
     if p_true is None:
         pt['fv'] = p_nom['fv'] * (1 + rng.uniform(-0.3, 0.3, 3) * unc_scale)
         pt['fc'] = p_nom['fc'] * (1 + rng.uniform(-0.3, 0.3, 3) * unc_scale)
-        pt = with_payload(pt, rng.uniform(0.0, 3.0))
+        mp = rng.uniform(0.0, 3.0)
+        pt = with_payload(pt, mp)
     else:
         pt = p_true
     ph = dict(p_nom); ph['tau_max'] = p_nom['tau_max'] * tau_scale
+    if payload_err is not None and p_true is None:
+        # payload configured in the controller model with a relative error drawn from U(-payload_err, payload_err)
+        u_p = np.random.default_rng(seed + 987654).uniform(-1.0, 1.0)
+        ph = with_payload(ph, mp * (1.0 + payload_err * u_p))
 
     def dist(t):
         base = np.array([10.0 * np.sin(2 * np.pi * 1.5 * t), 1.0 * np.sin(2 * np.pi * 2.0 * t), 0.5 * np.cos(2 * np.pi * 2.5 * t)])
@@ -333,8 +339,11 @@ def run(ctrl_kind='FOSMC', lam=0.6, scenario='S1', seed=0, Tf=10.0, dt=1e-3,
     n = int(round(Tf / dt))
     out = {k: np.zeros((n, m)) for k, m in (('q', 3), ('qr', 3), ('x', 2), ('xd', 2), ('tau', 3), ('r', 3), ('s', 3), ('flags', 3), ('sat', 3), ('Ie', 3))}
     out['t'] = np.arange(n) * dt
+    out['payload'] = mp if p_true is None else None
     if log_delta:
         out['Delta'] = np.full((n, 3), np.nan)
+    if log_red:
+        out['Dred'] = np.full((n, 3), np.nan)
     sig_q, sig_v = np.array([2e-6, 2e-5, 2e-5]), np.array([1e-3, 2e-3, 2e-3])
     tau = np.zeros(3); tau_act = np.zeros(3)
     nd = int(round(delay / dt)); tau_buf = [np.zeros(3)] * nd
@@ -395,6 +404,16 @@ def run(ctrl_kind='FOSMC', lam=0.6, scenario='S1', seed=0, Tf=10.0, dt=1e-3,
             D = (plant.eff - 1.0) * (Mh @ ar + Ch @ vr + Fh) + (Mh - Mt) @ ar + (Ch - Ct) @ vr + (Fh - Ft) + plant.bias - dist(t)
             D[~plant.free] = np.nan
             out['Delta'][k] = D
+        if log_red and detected_at is not None and reconfigure and ctrl_kind != 'CTPID':
+            # reduced-chain lumped uncertainty after isolation (Corollary 1): residual of the free rows
+            fr = ctrl.enabled & plant.free
+            qt, vt = plant.q, plant.qd
+            Mt, Ct, Ft = M_mat(qt, pt), C_mat(qt, vt, pt), friction(vt, pt['fv'], pt['fc'])
+            ar, vr = ctrl.a_r, ctrl.v_r
+            u_nom = ctrl.tau_u + ctrl.KD * s + ctrl.rho * np.clip(s / ctrl.phi, -1, 1)
+            Dr = plant.eff * u_nom + plant.bias - dist(t) - (Mt[:, fr] @ ar[fr] + Ct[:, fr] @ vr[fr] + Ft)
+            Dr[~fr] = np.nan
+            out['Dred'][k] = Dr
         tau_in = tau
         tau_buf.append(tau.copy()); tau_app = tau_buf.pop(0)
         if act_tc > 0:

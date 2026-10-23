@@ -2,7 +2,7 @@
 import json, numpy as np, matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 import fontsetup; fontsetup.apply()
 from failfn import failed
-PL = {int(k): v for k, v in json.load(open('diagnostics/diag_payload.json' if __import__('os').path.exists('diagnostics/diag_payload.json') else 'diag_payload.json'))['payload'].items()}
+PL = {int(k): v for k, v in json.load(open('diag_payload.json'))['payload'].items()}
 def L(n): return [json.loads(l) for l in open(f'results2/camp_{n}.jsonl')]
 A, Z, Q, S = {}, {}, {}, {}
 for r in L('A'):
@@ -15,15 +15,18 @@ for r in L('Q') + L('Q2'):
     if k[3] == 'S3': Q[(k[1], int(k[4]))] = r
 for r in L('S'):
     k = r['key'].split('|'); S[(k[1], k[3], int(k[5]))] = r
-SEEDS = range(100, 200)
-cfg = {'ISMC-J': lambda s: A[('ISMC-J', s)] if s < 120 else Z[('ISMC-J', 'none', s)],
-       'FOSMC-J': lambda s: A[('FOSMC-J', s)] if s < 120 else Z[('FOSMC-J', 'none', s)],
-       'FOSMC-J, cond. int.': lambda s: Z[('FOSMC-J', 'cond', s)],
-       'ISMC-J, enlarged $P$': lambda s: Q[('ISMC-J', s)],
-       'FOSMC-J, enlarged $P$': lambda s: Q[('FOSMC-J', s)],
-       'FOSMC-J, enlarged $P$ + schedule': lambda s: S[('FOSMC-J', 'P', s)]}
+SEEDS = range(100, 300)
+R2 = {}
+for r in L('R2M'):
+    k = r['key'].split('|'); R2[(k[1], k[2], k[3], int(k[5]))] = r
+cfg = {'ISMC-J': lambda s: R2[('ISMC-J', 'nom', 'none', s)],
+       'FOSMC-J': lambda s: R2[('FOSMC-J', 'nom', 'none', s)],
+       'ISMC-J, enlarged $P$': lambda s: R2[('ISMC-J', 'P', 'none', s)],
+       'FOSMC-J, enlarged $P$': lambda s: R2[('FOSMC-J', 'P', 'none', s)],
+       'FOSMC-J, enlarged $P$ + schedule': lambda s: R2[('FOSMC-J', 'P', 'sched', s)]}
+PL = {s: R2[('ISMC-J', 'nom', 'none', s)]['payload'] for s in SEEDS}
 sty = {'ISMC-J': dict(color='tab:purple', ls='--', marker='s'), 'FOSMC-J': dict(color='tab:orange', ls='-', marker='o'),
-       'FOSMC-J, cond. int.': dict(color='k', ls=':', marker='^'), 'ISMC-J, enlarged $P$': dict(color='tab:purple', ls='-.', marker='v'),
+       'ISMC-J, enlarged $P$': dict(color='tab:purple', ls='-.', marker='v'),
        'FOSMC-J, enlarged $P$': dict(color='tab:red', ls='-', marker='D'), 'FOSMC-J, enlarged $P$ + schedule': dict(color='tab:green', ls='-', marker='x')}
 bins = np.array([0, 1.5, 2.0, 2.25, 2.5, 2.75, 3.0001]); mid = 0.5 * (bins[1:] + bins[:-1])
 fig, ax = plt.subplots(1, 3, figsize=(7.2, 2.6))
@@ -33,9 +36,9 @@ for name, get in cfg.items():
         ss = [s for s in SEEDS if bins[i] <= PL[s] < bins[i + 1]]
         fr.append(100 * np.mean([failed(get(s), 'S3') for s in ss]))
     ax[0].plot(mid, fr, lw=1, ms=3, label=name, **sty[name])
-ax[0].set_xlabel('Payload (kg)'); ax[0].set_ylabel('Failed runs (%)'); ax[0].set_title('(a) Failures vs. payload (S3, 100 seeds)', fontsize=8)
+ax[0].set_xlabel('Payload (kg)'); ax[0].set_ylabel('Failed runs (%)'); ax[0].set_title('(a) Failures vs. payload (S3, 200 seeds)', fontsize=8)
 ax[0].legend(fontsize=5.2, loc='upper left'); ax[0].set_ylim(-5, 105)
-D = json.load(open('diagnostics/diag_demand.json' if __import__('os').path.exists('diagnostics/diag_demand.json') else 'diag_demand.json'))
+D = json.load(open('diag_demand.json'))
 for c, cf, lab, st in (('ISMC-J', 'nom', 'ISMC-J', sty['ISMC-J']), ('ISMC-J', 'P', 'ISMC-J, enl. $P$', sty['ISMC-J, enlarged $P$']),
                        ('FOSMC-J', 'P', 'FOSMC-J, enl. $P$', sty['FOSMC-J, enlarged $P$'])):
     rows = [d for d in D if d['c'] == c and d['cf'] == cf]

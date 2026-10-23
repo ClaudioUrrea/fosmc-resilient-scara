@@ -11,9 +11,9 @@ import os, glob
 RMSE = {'S1': {'ISMC-J': 0.031, 'FOSMC-J': 0.016},        # mm, 20 evaluation runs, jointly tuned pair (Table 5)
         'S2': {'ISMC-J': 0.079, 'FOSMC-J': 0.026}}
 GAIN = {'S1': 49, 'S2': 67}                               # % RMSE reduction of FOSMC-J vs ISMC-J (p = 1.9e-6)
-POST = {'gain': '−8 to −10%', 'fail': '0–2 of 100'}              # post-lock RMSE reduction FOSMC-J vs ISMC-J and failures, gain schedule at reconfiguration (Section 3.6)
+POST = {'gain': '−8 to −9.5%', 'fail': '0–2 of 100'}              # post-lock RMSE reduction FOSMC-J vs ISMC-J and failures, gain schedule at reconfiguration (Section 3.6)
 DELAY = {'ISMC-A': 7, 'FOSMC': 5}                         # tolerable input delay in ms, equal gains, 20 runs (Figure 12)
-TOTAL_RUNS = '≈ 5600'
+TOTAL_RUNS = '≈ 8100'
 # ------------------------------------------------------------------ fonts (Arial on Windows/macOS, Liberation Sans on Linux)
 CANDIDATES = [
     ('Arial', [r'C:\Windows\Fonts\arial.ttf', r'C:\Windows\Fonts\arialbd.ttf',
@@ -106,7 +106,7 @@ for i in range(2):
 ax2.set_xticks(xs); ax2.set_xticklabels(['No fault', '50% LOE on $\\theta_1$'], fontsize=8.8)
 ax2.set_ylim(0, 0.115); ax2.set_yticks([0, 0.04, 0.08]); ax2.tick_params(axis='y', labelsize=8.5)
 ax2.set_ylabel('RMSE (mm)', fontsize=9.5); ax2.legend(fontsize=8.2, frameon=False, loc='upper left', bbox_to_anchor=(0.0, 1.02))
-ax2.set_title('Tuned pair, equal activity budget', fontsize=10.2, fontweight='bold', color=DARK, pad=4)
+ax2.set_title('Tuned pair, equal budget, no added lag', fontsize=10.2, fontweight='bold', color=DARK, pad=4)
 for s_ in ('top', 'right'): ax2.spines[s_].set_visible(False)
 ax2.set_facecolor(GREY)
 
@@ -115,10 +115,10 @@ def tile(x, y, big, small, col):
     ax.text(x + 0.79, y + 0.78, big, ha='center', va='center', fontsize=12.5, fontweight='bold', color=col)
     ax.text(x + 0.79, y + 0.36, small, ha='center', va='center', fontsize=7.8, color='#374151', linespacing=1.15)
 tile(7.54, 0.72, f"{POST['gain']}", f"post-lock RMSE with a gain\nschedule at reconfiguration\n({POST['fail']} failures)", RED)
-tile(9.20, 0.72, f"{DELAY['FOSMC']} vs {DELAY['ISMC-A']} ms", 'tolerable input delay,\nthe cost of the order\n(FOSMC vs ISMC-A)', '#2f6f4f')
+tile(9.20, 0.72, f"{DELAY['FOSMC']} vs {DELAY['ISMC-A']} ms", 'tolerable input delay\n(FOSMC vs ISMC-A);\nFOSMC-J fails with\na 2-ms lag', '#2f6f4f')
 
 ax.add_patch(FancyBboxPatch((0.18, 0.1), 10.64, 0.38, boxstyle='round,pad=0.01,rounding_size=0.08', fc=DARK, ec='none'))
-ax.text(W / 2, 0.29, f'{TOTAL_RUNS} simulation runs  ·  Python ≡ MATLAB (≤ 10$^{{−15}}$)  ·  RoboDK digital twin (0.001 mm)  ·  Open code and data (MIT)',
+ax.text(W / 2, 0.29, f'{TOTAL_RUNS} simulation runs  ·  Python ≡ MATLAB (≤ 10$^{{−15}}$)  ·  RoboDK kinematic twin (0.001 mm)  ·  Open code and data (MIT)',
         ha='center', va='center', color='white', fontsize=10.2)
 fig.savefig('Graphical_Abstract.png', dpi=250, facecolor='white')
 from PIL import Image                      # MDPI: RGB, no transparency
